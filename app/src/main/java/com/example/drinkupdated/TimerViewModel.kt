@@ -14,17 +14,12 @@ class TimerViewModel : ViewModel() {
 
     private var timerJob: Job? = null
 
-    // Function to set the timer to a specific time (in seconds)
-    fun setTimerTime(timeInSeconds: Long) {
-        _timer.value = timeInSeconds
-    }
-
     fun startTimer() {
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
-            while (_timer.value > 0) { // Continue until the timer reaches 0
+            while (true) {
                 delay(1000)
-                _timer.value--
+                _timer.value++
             }
         }
     }
