@@ -25,7 +25,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,7 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.drinkupdated.Components.AlertDialogExample
-import com.example.drinkupdated.Pause
+import com.example.drinkupdated.icons.Pause
 import com.example.drinkupdated.TimerViewModel
 import com.example.drinkupdated.data.Cocktail
 import com.example.drinkupdated.utils.formatTime
@@ -44,7 +43,8 @@ import com.example.drinkupdated.utils.formatTime
 @Composable
 fun DetailScreen(cocktail: Cocktail, onBack: () -> Unit) {
     // Remember the selected cocktail across orientation changes
-    var savedCocktail by rememberSaveable { mutableStateOf(cocktail) }
+    //var savedCocktail by rememberSaveable { mutableStateOf(cocktail) }
+    val savedCocktail = cocktail
 
     // Get an instance of TimerViewModel using `viewModel()` method
     val timerViewModel: TimerViewModel = viewModel()
@@ -92,6 +92,33 @@ fun DetailScreen(cocktail: Cocktail, onBack: () -> Unit) {
         Text(text = "Recipe: ${savedCocktail.recipe}", style = MaterialTheme.typography.bodyLarge)
 
         // Timer Display
+        // Timer Input
+        var timeInput by remember { mutableStateOf("") }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            androidx.compose.material3.TextField(
+                value = timeInput,
+                onValueChange = { timeInput = it },
+                label = { Text("Set time (sec)") },
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.padding(4.dp))
+            Button(
+                onClick = {
+                    val seconds = timeInput.toLongOrNull() ?: 0L
+                    timerViewModel.setTimer(seconds)
+                }
+            ) {
+                Text("Set")
+            }
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = formatTime(timerValue.toInt()), // Convert Long to Int for formatTime
@@ -129,7 +156,7 @@ fun DetailScreen(cocktail: Cocktail, onBack: () -> Unit) {
             }
 
             // Restart Button
-            Button(onClick = { timerViewModel.stopTimer(); timerViewModel.startTimer() }) {
+            Button(onClick = { timerViewModel.resetTimer(); timerViewModel.startTimer() }) {
                 Icon(
                     imageVector = Icons.Default.Refresh,
                     contentDescription = "Restart",

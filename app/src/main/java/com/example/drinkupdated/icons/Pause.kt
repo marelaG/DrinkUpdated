@@ -1,4 +1,4 @@
-package com.example.drinkupdated
+package com.example.drinkupdated.icons
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathFillType

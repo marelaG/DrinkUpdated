@@ -9,19 +9,29 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class TimerViewModel : ViewModel() {
-    private val _timer = MutableStateFlow(0L)
+    private val _timer = MutableStateFlow(30L) // Default 30 seconds
     val timer = _timer.asStateFlow()
 
     private var timerJob: Job? = null
+    private var _initialTime: Long = 30L // Track the starting value
 
     fun startTimer() {
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
-            while (true) {
+            while (_timer.value > 0) {
                 delay(1000)
-                _timer.value++
+                _timer.value--
             }
         }
+    }
+
+    fun setTimer(seconds: Long) {
+        _initialTime = if (seconds > 0) seconds else 30L
+        _timer.value = _initialTime
+    }
+
+    fun resetTimer() {
+        _timer.value = _initialTime
     }
 
     fun pauseTimer() {
