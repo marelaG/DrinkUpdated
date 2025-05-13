@@ -3,6 +3,7 @@ package com.example.drinkupdated.screens
 
 import android.os.Parcelable
 import androidx.annotation.OptIn
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,120 +16,157 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
+import coil.compose.rememberAsyncImagePainter
+import com.example.drinkupdated.Components.CocktailViewModel
 import com.example.drinkupdated.data.Cocktail
 import com.google.firebase.firestore.FirebaseFirestore
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 
-@OptIn(UnstableApi::class)
+
 @Composable
-fun AlcoholCocktailListScreen(onCocktailSelected: (Cocktail) -> Unit,
-                              modifier: Modifier = Modifier) {
+fun isTablet(): Boolean {
+    val configuration = LocalConfiguration.current
+    return configuration.screenWidthDp >= 600
+}
+
+
+@Composable
+fun AlcoholCocktailListScreen(
+    onCocktailSelected: (Cocktail) -> Unit,
+    searchQuery: String,
+    modifier: Modifier = Modifier
+) {
     val db = FirebaseFirestore.getInstance()
     var cocktails by remember { mutableStateOf<List<Cocktail>>(emptyList()) }
-
-    // State for search query
-    var searchQuery by remember { mutableStateOf("") }
-
-    // Persist selected cocktail across orientation changes
     var selectedCocktail by rememberSaveable { mutableStateOf<Cocktail?>(null) }
 
-    // Fetch only alcoholic drinks from Firestore
+    val isTabletDevice = isTablet()
+
+    // Fetch cocktails from Firestore
     LaunchedEffect(Unit) {
         db.collection("drinks")
-            .whereEqualTo("alco", true) // Filter for alcoholic drinks
+            .whereEqualTo("alco", true)
             .get()
             .addOnSuccessListener { result ->
-                val fetchedCocktails = result.documents.mapNotNull { document ->
-                    val name = document.getString("name") ?: return@mapNotNull null
-                    val ingredients = document.getString("ingredients") ?: return@mapNotNull null
-                    val recipe = document.getString("recipe") ?: return@mapNotNull null
-                    val alco = document.getBoolean("alco") ?: false // Default to false if field is missing
-
-                    // Only include if explicitly marked as alcoholic
-                    if (alco) {
-                        Cocktail(name, ingredients, recipe, alco)
-                    } else {
-                        null
-                    }
+                cocktails = result.documents.mapNotNull { doc ->
+                    val name = doc.getString("name") ?: return@mapNotNull null
+                    val ingredients = doc.getString("ingredients") ?: return@mapNotNull null
+                    val recipe = doc.getString("recipe") ?: return@mapNotNull null
+                    val alco = doc.getBoolean("alco") ?: false
+                    val image = doc.getString("image") ?: return@mapNotNull null
+                    if (alco) Cocktail(name, ingredients, recipe, alco, image) else null
                 }
-                cocktails = fetchedCocktails
             }
-            .addOnFailureListener { e ->
-                e.printStackTrace()
-            }
+            .addOnFailureListener { it.printStackTrace() }
     }
 
-    // Filter cocktails based on the search query
-    val filteredCocktails = cocktails.filter {
-        it.name.contains(searchQuery, ignoreCase = true) ||
-                it.ingredients.contains(searchQuery, ignoreCase = true) ||
-                it.recipe.contains(searchQuery, ignoreCase = true)
+    val filteredCocktails = remember(cocktails, searchQuery) {
+        if (searchQuery.isBlank()) {
+            cocktails
+        } else {
+            cocktails.filter {
+                it.name.contains(searchQuery, ignoreCase = true) ||
+                        it.ingredients.contains(searchQuery, ignoreCase = true) ||
+                        it.recipe.contains(searchQuery, ignoreCase = true)
+            }
+        }
+    }
+
+    val gridColumns = if (isTabletDevice) {
+        GridCells.Adaptive(minSize = 150.dp)
+    } else {
+        GridCells.Fixed(1) // Enforce one item per row on phone
     }
 
     Column(modifier = modifier.padding(16.dp)) {
-        // Search bar
-        TextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            label = { Text("Search Alcoholic Cocktails") },  // Updated search label
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions.Default.copy(
-                imeAction = ImeAction.Search
-            ),
-            keyboardActions = KeyboardActions(
-                onSearch = {
-                    // Perform any additional actions when search is triggered
-                }
-            )
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Display filtered cocktails in a LazyColumn
-        LazyColumn(modifier = Modifier.fillMaxWidth()) {
-            items(filteredCocktails) { cocktail ->
-                val isSelected = cocktail == selectedCocktail
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp)
-                        .clickable {
-                            selectedCocktail = if (isSelected) {
-                                null
-                            } else {
-                                cocktail
+        if (selectedCocktail == null) {
+            LazyVerticalGrid(
+                columns = gridColumns,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(filteredCocktails) { cocktail ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedCocktail = cocktail },
+                        elevation = CardDefaults.cardElevation(4.dp)
+                    ) {
+                        Column(Modifier.padding(8.dp)) {
+                            cocktail.image?.let { imageUrl ->
+                                Image(
+                                    painter = rememberAsyncImagePainter(imageUrl),
+                                    contentDescription = cocktail.name,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(120.dp)
+                                )
                             }
-                            onCocktailSelected(cocktail)
-                        },
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(text = cocktail.name, style = MaterialTheme.typography.titleMedium)
+                            Text(text = "Alcoholic", color = Color.Red, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+
+                if (filteredCocktails.isEmpty()) {
+                    item {
                         Text(
-                            text = cocktail.name,
-                            style = MaterialTheme.typography.headlineSmall
-                        )
-                        // Change text to indicate it's alcoholic
-                        Text(
-                            text = "Alcoholic",  // Updated tag to Alcoholic
-                            color = Color.Red,  // Red color to signify alcohol
-                            style = MaterialTheme.typography.labelSmall
+                            text = "No alcoholic cocktails found.",
+                            modifier = Modifier.padding(16.dp)
                         )
                     }
                 }
             }
+        } else {
+            // Show details
+            if (isTabletDevice) {
+                Row(Modifier.fillMaxSize()) {
+                    LazyVerticalGrid(
+                        columns = gridColumns,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        items(filteredCocktails) { cocktail ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { selectedCocktail = cocktail },
+                                elevation = CardDefaults.cardElevation(4.dp)
+                            ) {
+                                Column(Modifier.padding(8.dp)) {
+                                    cocktail.image?.let { imageUrl ->
+                                        Image(
+                                            painter = rememberAsyncImagePainter(imageUrl),
+                                            contentDescription = cocktail.name,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(120.dp)
+                                        )
+                                    }
+                                    Text(text = cocktail.name, style = MaterialTheme.typography.titleMedium)
+                                    Text(text = "Alcoholic", color = Color.Red, style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
+                    }
 
-            // If no cocktails match the search query
-            if (filteredCocktails.isEmpty()) {
-                item {
-                    Text(
-                        text = "No alcoholic cocktails found.",
-                        modifier = Modifier.padding(16.dp)
-                    )
+                    Box(modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 16.dp)) {
+                        DetailScreen(cocktail = selectedCocktail!!, onBack = { selectedCocktail = null })
+                    }
                 }
+            } else {
+                // Phone: show detail screen only
+                DetailScreen(cocktail = selectedCocktail!!, onBack = { selectedCocktail = null })
             }
         }
     }

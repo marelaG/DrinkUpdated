@@ -11,6 +11,7 @@ android {
     namespace = "com.example.drinkupdated"
     compileSdk = 35
 
+
     defaultConfig {
         applicationId = "com.example.drinkupdated"
         minSdk = 29
@@ -61,6 +62,21 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    implementation(platform("androidx.compose:compose-bom:2024.05.00"))
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.foundation:foundation")
     implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.3")
+    implementation ("androidx.compose.foundation:foundation:1.4.0")
+    // For Compose Material3
+    implementation ("androidx.compose.material3:material3:1.0.0")
+    implementation ("com.google.accompanist:accompanist-pager:0.24.13-rc")
+    implementation ("com.google.accompanist:accompanist-pager-indicators:0.24.13-rc")
+    implementation ("com.google.accompanist:accompanist-pager:0.27.0")
+    implementation ("com.google.accompanist:accompanist-pager-indicators:0.27.0")
+    implementation("io.coil-kt:coil-compose:2.2.2") // or latest version
+    // For swiping
+    implementation ("com.google.accompanist:accompanist-pager:0.24.13-beta")
+
 }

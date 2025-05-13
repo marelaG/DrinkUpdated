@@ -1,5 +1,6 @@
 package com.example.drinkupdated.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,12 +39,14 @@ import com.example.drinkupdated.data.Cocktail
 import com.example.drinkupdated.utils.formatTime
 
 
-// Detail Screen
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import coil.compose.rememberAsyncImagePainter
+
 
 @Composable
 fun DetailScreen(cocktail: Cocktail, onBack: () -> Unit) {
     // Remember the selected cocktail across orientation changes
-    //var savedCocktail by rememberSaveable { mutableStateOf(cocktail) }
     val savedCocktail = cocktail
 
     // Get an instance of TimerViewModel using `viewModel()` method
@@ -59,9 +62,31 @@ fun DetailScreen(cocktail: Cocktail, onBack: () -> Unit) {
         // timerViewModel.startTimer()
     }
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(text = savedCocktail.name, style = MaterialTheme.typography.titleLarge)
+    // Create a ScrollState
+    val scrollState = rememberScrollState()
+
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+            .verticalScroll(scrollState)  // Make the column scrollable
+    ) {
+
+            Image(painter = rememberAsyncImagePainter(savedCocktail.image),
+                contentDescription = cocktail.name,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = savedCocktail.name,
+                    style = MaterialTheme.typography.titleLarge
+                )
+
 
             FloatingActionButton(
                 onClick = {
@@ -165,7 +190,7 @@ fun DetailScreen(cocktail: Cocktail, onBack: () -> Unit) {
             }
         }
 
-        Spacer(modifier = Modifier.height(200.dp))
+        Spacer(modifier = Modifier.height(50.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
             Button(onClick = onBack) {
                 Text("Back")

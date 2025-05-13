@@ -7,4 +7,4 @@ import kotlinx.parcelize.Parcelize
 
 
 @Parcelize
-data class Cocktail(val name: String, val ingredients: String, val recipe: String, val alco: Boolean) : Parcelable
+data class Cocktail(val name: String, val ingredients: String, val recipe: String, val alco: Boolean, val image: String? = null) : Parcelable
