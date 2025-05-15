@@ -57,10 +57,7 @@ fun DetailScreen(cocktail: Cocktail, onBack: () -> Unit) {
     val timerValue by timerViewModel.timer.collectAsState()
 
     // Start the timer immediately when the screen is shown
-    LaunchedEffect(Unit) {
-        // You can start the timer here if necessary
-        // timerViewModel.startTimer()
-    }
+
 
     // Create a ScrollState
     val scrollState = rememberScrollState()

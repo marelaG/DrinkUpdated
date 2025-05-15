@@ -26,6 +26,7 @@ import com.google.accompanist.pager.*
 import kotlinx.coroutines.launch
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 
 class MainActivity : ComponentActivity() {
 
@@ -65,111 +66,138 @@ class MainActivity : ComponentActivity() {
             keyboardActions = KeyboardActions(onSearch = {})
         )
     }
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun MainDrinkAppUI() {
-        val isDarkTheme = isSystemInDarkTheme()
-        val viewModel: CocktailViewModel = viewModel()
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPagerApi::class)
+@Composable
+fun MainDrinkAppUI() {
+    val isDarkTheme = isSystemInDarkTheme()
+    val viewModel: CocktailViewModel = viewModel()
 
-        MaterialTheme(
-            colorScheme = if (isDarkTheme) darkColorScheme() else lightColorScheme()
-        ) {
-            val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-            val scope = rememberCoroutineScope()
+    MaterialTheme(
+        colorScheme = if (isDarkTheme) darkColorScheme() else lightColorScheme()
+    ) {
+        val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+        val scope = rememberCoroutineScope()
 
-            var isSearchVisible by remember { mutableStateOf(false) }
-            var currentScreen by rememberSaveable { mutableStateOf("main") }
+        var isSearchVisible by remember { mutableStateOf(false) }
+        var currentScreen by rememberSaveable { mutableStateOf(0) } // 0 = "main", 1 = "alcoholFree", 2 = "alcoholic"
 
-            ModalNavigationDrawer(
-                drawerState = drawerState,
-                drawerContent = {
-                    DrawerContent(onItemClick = { item ->
-                        scope.launch { drawerState.close() }
-                        currentScreen = when (item) {
-                            "alcoholFree" -> "alcoholFree"
-                            "alcoholic" -> "alcoholic"
-                            else -> "main"
+        // Use PagerState to track the swipe position
+        val pagerState = rememberPagerState(initialPage = currentScreen)
+
+        // Sync the Tab navigation with the swipe
+        LaunchedEffect(pagerState.currentPage) {
+            currentScreen = pagerState.currentPage
+        }
+
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                DrawerContent(onItemClick = { item ->
+                    scope.launch {
+                        drawerState.close()
+                        val pageIndex = when (item) {
+                            "alcoholFree" -> 1
+                            "alcoholic" -> 2
+                            else -> 0
                         }
-                    })
-                },
-                scrimColor = Color.Black.copy(alpha = 0.7f),
-            ) {
-                Scaffold(
-                    topBar = {
-                        Column {
-                            TabRow(
-                                selectedTabIndex = when (currentScreen) {
-                                    "alcoholFree" -> 1
-                                    "alcoholic" -> 2
-                                    else -> 0
-                                },
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            ) {
-                                Tab(
-                                    selected = currentScreen == "main",
-                                    onClick = { currentScreen = "main" },
-                                    text = { Text("Main Info") }
-                                )
-                                Tab(
-                                    selected = currentScreen == "alcoholFree",
-                                    onClick = { currentScreen = "alcoholFree" },
-                                    text = { Text("Non-Alcoholic") }
-                                )
-                                Tab(
-                                    selected = currentScreen == "alcoholic",
-                                    onClick = { currentScreen = "alcoholic" },
-                                    text = { Text("Alcoholic") }
-                                )
-                            }
+                        pagerState.animateScrollToPage(pageIndex)
+                    }
+                })
 
-                            TopAppBar(
-                                title = {
-                                    if (isSearchVisible) {
-                                        SearchTextField(viewModel = viewModel)
-                                    } else {
-                                        Text(
-                                            when (currentScreen) {
-                                                "alcoholFree" -> "Alcohol-Free Drinks"
-                                                "alcoholic" -> "Alcoholic Drinks"
-                                                else -> "Drink App"
-                                            }
-                                        )
-                                    }
-                                },
-                                navigationIcon = {
-                                    IconButton(onClick = {
-                                        scope.launch { drawerState.open() }
-                                    }) {
-                                        Icon(Icons.Default.Menu, contentDescription = "Menu")
-                                    }
-                                },
-                                actions = {
-                                    IconButton(onClick = {
-                                        isSearchVisible = !isSearchVisible
-                                    }) {
-                                        Icon(Icons.Default.Search, contentDescription = "Search")
-                                    }
-                                }
+            },
+            scrimColor = Color.Black.copy(alpha = 0.7f),
+        ) {
+            Scaffold(
+
+                topBar = {
+                    Column (
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()) //
+                    ) {
+
+                        // Tabs for navigating between screens
+                        TabRow(
+                            selectedTabIndex = currentScreen,
+                            modifier = Modifier.padding(horizontal = 0.dp)
+                        ) {
+                            Tab(
+                                selected = currentScreen == 0,
+                                onClick = { scope.launch {
+                                    pagerState.animateScrollToPage(0)
+                                } },
+                                text = { Text("Main Info") }
+                            )
+                            Tab(
+                                selected = currentScreen == 1,
+                                onClick = { scope.launch {
+                                    pagerState.animateScrollToPage(1)
+                                } },
+                                text = { Text("Non-Alcoholic") }
+                            )
+                            Tab(
+                                selected = currentScreen == 2,
+                                onClick = { scope.launch {
+                                    pagerState.animateScrollToPage(2)
+                                } },
+                                text = { Text("Alcoholic") }
                             )
                         }
-                    }
-                ) { innerPadding ->
-                    when (currentScreen) {
-                        "alcoholFree" -> AlcoholFreeCocktailListScreen(
 
+                        // Top AppBar
+                        TopAppBar(
+                            title = {
+                                if (isSearchVisible) {
+                                    SearchTextField(viewModel = viewModel)
+                                } else {
+                                    Text(
+                                        when (currentScreen) {
+                                            1 -> "Non-Alcoholic Drinks"
+                                            2 -> "Alcoholic Drinks"
+                                            else -> "Drink App"
+                                        }
+                                    )
+                                }
+                            },
+                            navigationIcon = {
+                                IconButton(onClick = {
+                                    scope.launch { drawerState.open() }
+                                }) {
+                                    Icon(Icons.Default.Menu, contentDescription = "Menu")
+                                }
+                            },
+                            actions = {
+                                IconButton(onClick = {
+                                    isSearchVisible = !isSearchVisible
+                                }) {
+                                    Icon(Icons.Default.Search, contentDescription = "Search")
+                                }
+                            }
+                        )
+                    }
+                }
+            ) { innerPadding ->
+                // HorizontalPager to support swiping between screens
+                HorizontalPager(
+                    count = 3, // 3 screens: MainInfoCard, AlcoholFree, Alcoholic
+                    state = pagerState,
+                    //modifier = Modifier.padding(innerPadding)
+                    modifier = Modifier.padding(top = 20.dp, bottom = 0.dp)
+                ) { pageIndex ->
+                    when (pageIndex) {
+                        0 -> MainInfoCard(modifier = Modifier.padding(innerPadding))
+                        1 -> AlcoholFreeCocktailListScreen(
                             searchQuery = viewModel.searchQuery,
                             modifier = Modifier.padding(innerPadding)
                         )
-                        "alcoholic" -> AlcoholCocktailListScreen(
+                        2 -> AlcoholCocktailListScreen(
                             onCocktailSelected = {},
                             searchQuery = viewModel.searchQuery,
                             modifier = Modifier.padding(innerPadding)
                         )
-                        else -> MainInfoCard(modifier = Modifier.padding(innerPadding))
                     }
                 }
             }
         }
     }
-
-
+}
